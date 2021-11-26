@@ -1,4 +1,4 @@
-# RFC master
+# Hive RFCs
 
 This branch holds the latest approved RFCs for Hive.
 
