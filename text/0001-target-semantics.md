@@ -1,7 +1,7 @@
 - Feature Name: target-semantics
 - Start Date: 2021-11-26
-- RFC PR: [hive/rfc#0000](https://github.com/mscofield0/hive/pull/0000)
-- Hive Issue: [hive#0000](https://github.com/mscofield0/hive/issues/0000)
+- RFC PR: [hive/rfc#0001](https://github.com/mscofield0/hive/pull/  1)
+- Hive Issue: [hive#0002](https://github.com/mscofield0/hive/issues/2)
 
 # Summary
 [summary]: #summary
