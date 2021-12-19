@@ -1,7 +1,7 @@
 - Feature Name: `target-impl`
 - Start Date: 2021-11-26
-- RFC PR: [hive/rfc#0000](https://github.com/mscofield0/hive/pull/0000)
-- Hive Issue: [hive#0000](https://github.com/mscofield0/hive/issues/0000)
+- RFC PR: [hive/rfc#0003](https://github.com/mscofield0/hive/pull/0003)
+- Hive Issue: [hive#0002](https://github.com/mscofield0/hive/issues/0002)
 
 # Summary
 [summary]: #summary
