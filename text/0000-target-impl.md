@@ -21,82 +21,73 @@ I propose the following structure for Hive:
 - **\<target-name>.hive** - Target file
 - **\<name>.incl** - Arbitrary Hive include file (used to clean up target files by spreading out the functionality elsewhere)
 
-Hive should locate all the targets in the project and be aware of them on every setup and build event. This is a requirement because a target can show up anywhere in the project's directory. Though this happens on every setup and build event, this is cheap since all Hive needs to do is determine their locations.
+## Targets
 
+Hive should scan for all the targets in the current directory explicitly when the user asks him to. Every action besides scanning should require Hive to have metadata in the specified directory. This keeps things simple and automated without much hassle for the user. So, each time you add a target you would do a rescan to update Hive's target information.
 
+When Hive is invoked to build or setup a target, Hive first checks its target information and then starts interpreting the target that was called for the build or setup. Once a dependency is reached, Hive should first check the name of the dependency in the project itself. If that fails, Hive checks if the dependency is installed on the system. And finally if that fails, then Hive checks if there is a wrap dependency or if there is an explicit VC repository or source specified.
 
-Explain the proposal as if it was already included in the build system and you were teaching it to another Hive user. That generally means:
+## Dependencies
 
-- Introducing new named concepts.
-- Explaining the feature largely in terms of examples.
-- Explaining how Hive users should *think* about the feature, and how it should impact the way they use Hive. It should explain the impact as concretely as possible.
-- If applicable, provide sample error messages, deprecation warnings, or migration guidance.
-- If applicable, describe the differences between teaching this to existing and new Hive users.
+Since dependencies import entire projects in, it is necessary to specify the target you wish to import. This target defaults to `lib.hive`. Specifying the name is still required since searching local targets and searching system-installed libraries. If the dependency is a system-installed library, then the target parameter is ignored and the system is checked. If the version parameter is omitted, then Hive searches for the largest version of the installed library on the system. The following is an example of what adding dependencies should look like, it is heavily subject to change.
 
-# Reference-level explanation
-[reference-level-explanation]: #reference-level-explanation
+```
+xyz_dep = dependency('XYZ',
+    version: '1.0.0', # default: searches for the largest version
+    target: 'lib-specific', # default: 'lib'
+    repo: 'https://repo.com/xyz.git', # default: <none>
+    required: false, # default: true
+)
+```
 
-This is the technical portion of the RFC. Explain the design in sufficient detail that:
+After a dependency has been defined, the dependant can now change its exported properties. The dependency is only instantiated at the end of the dependant's definition.
 
-- Its interaction with other features is clear.
-- It is reasonably clear how the feature would be implemented.
-- Corner cases are dissected by example.
+If a target's configuration matches to a previously instantiated configuration, then the dependency should use that prebuilt configuration. If no such prebuilt configuration, then one should be created.
 
-The section should return to the examples given in the previous section, and explain more fully how the detailed proposal makes those examples work.
+## **.incl** files
 
-# Drawbacks
-[drawbacks]: #drawbacks
+Files with the **.incl** extension should be used to clean up target files by spreading out the functionality elsewhere. This would allow the user to split source file adding into its respective directory, like this:
 
-Why should we *not* do this?
+```
+# In ./src/src.incl
+lib_src += files(
+    'example.cpp',
+    'bar.cpp',
+)
+
+# In ./lib.hive
+let lib_src = []
+include('src/src.incl')
+...
+```
+
+Include files will be evaluated within the context of the target they were included in. This means that include files can modify existing variables in the target that included the file.
+
+## Target configuration
+
+The target configuration should be made up of:
+
+- Target type
+- Source files
+- Include directories
+- Compile options (flags)
+- Compile definitions
+- Linker options (flags) and
+- Additional user-defined export variables
+
+Any secondary definition should be fed to one of the above configuration variables or the user-defined export variable.
+
+This would allow for Hive to keep track if the target was already built and, if ever proposed, which target to download from a prebuilt target repository. 
+
+The way a hash would be built is as follows:
+
+- Non-user-defined variables will be placed in their proper and deterministic order
+- Every list value will be sorted in alphabetical order
+- User-defined variables will be placed at the end of the string and in alphabetical order
+
+This would all happen in-memory and passed over to a hash function that is then compared with existing target hashes. If it matches a target hash, the target wouldn't need to be rebuilt. If it doesn't, the target is built and it's hash is stored in the target metadata.
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-- Why is this design the best in the space of possible designs?
-- What other designs have been considered and what is the rationale for not choosing them?
-- What is the impact of not doing this?
-
-# Prior art
-[prior-art]: #prior-art
-
-Discuss prior art, both the good and the bad, in relation to this proposal.
-A few examples of what this can include are:
-
-- For build system, language, tools and proposals: Does this feature exist in other build systems and what experience have their community had?
-- For community proposals: Is this done by some other community and what were their experiences with it?
-- For other teams: What lessons can we learn from what other communities have done here?
-- Papers: Are there any published papers or great posts that discuss this? If you have some relevant papers to refer to, this can serve as a more detailed theoretical background.
-
-This section is intended to encourage you as an author to think about the lessons from other languages, provide readers of your RFC with a fuller picture.
-If there is no prior art, that is fine - your ideas are interesting to us whether they are brand new or if it is an adaptation from other languages.
-
-Note that while precedent set by other build systems is some motivation, it does not on its own motivate an RFC.
-Please also take into consideration that Hive sometimes intentionally diverges from common language features.
-
-# Unresolved questions
-[unresolved-questions]: #unresolved-questions
-
-- What parts of the design do you expect to resolve through the RFC process before this gets merged?
-- What parts of the design do you expect to resolve through the implementation of this feature before stabilization?
-- What related issues do you consider out of scope for this RFC that could be addressed in the future independently of the solution that comes out of this RFC?
-
-# Future possibilities
-[future-possibilities]: #future-possibilities
-
-Think about what the natural extension and evolution of your proposal would
-be and how it would affect the language and project as a whole in a holistic
-way. Try to use this section as a tool to more fully consider all possible
-interactions with the project and language in your proposal.
-Also consider how this all fits into the roadmap for the project
-and of the relevant sub-team.
-
-This is also a good place to "dump ideas", if they are out of scope for the
-RFC you are writing but otherwise related.
-
-If you have tried and cannot think of any future possibilities,
-you may simply state that you cannot think of anything.
-
-Note that having something written down in the future-possibilities section
-is not a reason to accept the current or a future RFC; such notes should be
-in the section on motivation or rationale in this or subsequent RFCs.
-The section merely provides additional information.
+The rationale is making everything that could be automated, automated.
